@@ -1,59 +1,3 @@
-'use strict';
-
-/**
- * @ngdoc directive
- * @name tagsInput
- * @module ngTagsInput
- *
- * @description
- * Renders an input box with tag editing support.
- *
- * @param {string} ngModel Assignable Angular expression to data-bind to.
- * @param {string=} [template=NA] URL or id of a custom template for rendering each tag.
- * @param {string=} [templateScope=NA] Scope to be passed to custom templates - of both tagsInput and
- *    autoComplete directives - as $scope.
- * @param {string=} [displayProperty=text] Property to be rendered as the tag label.
- * @param {string=} [keyProperty=text] Property to be used as a unique identifier for the tag.
- * @param {string=} [type=text] Type of the input element. Only 'text', 'email' and 'url' are supported values.
- * @param {string=} [text=NA] Assignable Angular expression for data-binding to the element's text.
- * @param {number=} tabindex Tab order of the control.
- * @param {string=} [placeholder=Add a tag] Placeholder text for the control.
- * @param {number=} [minLength=3] Minimum length for a new tag.
- * @param {number=} [maxLength=MAX_SAFE_INTEGER] Maximum length allowed for a new tag.
- * @param {number=} [minTags=0] Sets minTags validation error key if the number of tags added is less than minTags.
- * @param {number=} [maxTags=MAX_SAFE_INTEGER] Sets maxTags validation error key if the number of tags added is greater
- *    than maxTags.
- * @param {boolean=} [allowLeftoverText=false] Sets leftoverText validation error key if there is any leftover text in
- *    the input element when the directive loses focus.
- * @param {string=} [removeTagSymbol=×] (Obsolete) Symbol character for the remove tag button.
- * @param {boolean=} [addOnEnter=true] Flag indicating that a new tag will be added on pressing the ENTER key.
- * @param {boolean=} [addOnSpace=false] Flag indicating that a new tag will be added on pressing the SPACE key.
- * @param {boolean=} [addOnComma=true] Flag indicating that a new tag will be added on pressing the COMMA key.
- * @param {boolean=} [addOnBlur=true] Flag indicating that a new tag will be added when the input field loses focus.
- * @param {boolean=} [addOnPaste=false] Flag indicating that the text pasted into the input field will be split into tags.
- * @param {string=} [pasteSplitPattern=,] Regular expression used to split the pasted text into tags.
- * @param {boolean=} [replaceSpacesWithDashes=true] Flag indicating that spaces will be replaced with dashes.
- * @param {string=} [allowedTagsPattern=.+] Regular expression that determines whether a new tag is valid.
- * @param {boolean=} [enableEditingLastTag=false] Flag indicating that the last tag will be moved back into the new tag
- *    input box instead of being removed when the backspace key is pressed and the input box is empty.
- * @param {boolean=} [addFromAutocompleteOnly=false] Flag indicating that only tags coming from the autocomplete list
- *    will be allowed. When this flag is true, addOnEnter, addOnComma, addOnSpace and addOnBlur values are ignored.
- * @param {boolean=} [spellcheck=true] Flag indicating whether the browser's spellcheck is enabled for the input field or not.
- * @param {expression=} [tagClass=NA] Expression to evaluate for each existing tag in order to get the CSS classes to be used.
- *    The expression is provided with the current tag as $tag, its index as $index and its state as $selected. The result
- *    of the evaluation must be one of the values supported by the ngClass directive (either a string, an array or an object).
- *    See https://docs.angularjs.org/api/ng/directive/ngClass for more information.
- * @param {expression=} [onTagAdding=NA] Expression to evaluate that will be invoked before adding a new tag. The new
- *    tag is available as $tag. This method must return either a boolean value or a promise. If either a false value or a rejected
- *    promise is returned, the tag will not be added.
- * @param {expression=} [onTagAdded=NA] Expression to evaluate upon adding a new tag. The new tag is available as $tag.
- * @param {expression=} [onInvalidTag=NA] Expression to evaluate when a tag is invalid. The invalid tag is available as $tag.
- * @param {expression=} [onTagRemoving=NA] Expression to evaluate that will be invoked before removing a tag. The tag
- *    is available as $tag. This method must return either a boolean value or a promise. If either a false value or a rejected
- *    promise is returned, the tag will not be removed.
- * @param {expression=} [onTagRemoved=NA] Expression to evaluate upon removing an existing tag. The removed tag is available as $tag.
- * @param {expression=} [onTagClicked=NA] Expression to evaluate upon clicking an existing tag. The clicked tag is available as $tag.
- */
 tagsInput.directive('tagsInput', function($timeout, $document, $window, $q, tagsInputConfig, tiUtil) {
     function TagList(options, events, onTagAdding, onTagRemoving) {
         var self = {}, getTagText, setTagText, canAddTag, canRemoveTag, findTag;
@@ -196,7 +140,7 @@ tagsInput.directive('tagsInput', function($timeout, $document, $window, $q, tags
         replace: false,
         transclude: true,
         templateUrl: 'ngTagsInput/tags-input.html',
-        controller: function($scope, $attrs, $element) {
+        controller: ["$scope", "$attrs", "$element", function($scope, $attrs, $element) {
             $scope.events = tiUtil.simplePubSub();
 
             tagsInputConfig.load('tagsInput', $scope, $attrs, {
@@ -222,7 +166,8 @@ tagsInput.directive('tagsInput', function($timeout, $document, $window, $q, tags
                 keyProperty: [String, ''],
                 allowLeftoverText: [Boolean, false],
                 addFromAutocompleteOnly: [Boolean, false],
-                spellcheck: [Boolean, true]
+                spellcheck: [Boolean, true],
+                multiSelect: [Boolean, false]
             });
 
             $scope.tagList = new TagList($scope.options, $scope.events,
@@ -271,7 +216,7 @@ tagsInput.directive('tagsInput', function($timeout, $document, $window, $q, tags
                     }
                 };
             };
-        },
+        }],
         link: function(scope, element, attrs, ngModelCtrl) {
             var hotkeys = [KEYS.enter, KEYS.comma, KEYS.space, KEYS.backspace, KEYS.delete, KEYS.left, KEYS.right],
                 tagList = scope.tagList,
@@ -397,7 +342,9 @@ tagsInput.directive('tagsInput', function($timeout, $document, $window, $q, tags
                 .on('tag-removed', scope.onTagRemoved)
                 .on('tag-clicked', scope.onTagClicked)
                 .on('tag-added', function() {
-                    scope.newTag.text('');
+                    if (!options.multiSelect) {
+                        scope.newTag.text('');
+                    }
                 })
                 .on('tag-added tag-removed', function(event) {
                     scope.tags = tagList.items;
@@ -405,7 +352,6 @@ tagsInput.directive('tagsInput', function($timeout, $document, $window, $q, tags
                     // automatically, but since the model is an array, $setViewValue does nothing and it's up to us to do it.
                     // Unfortunately this won't trigger any registered $parser and there's no safe way to do it.
                     ngModelCtrl.$setDirty();
-                    
                     if (!options.multiSelect) { focusInput(); }
                 })
                 .on('invalid-tag', function() {
@@ -425,7 +371,7 @@ tagsInput.directive('tagsInput', function($timeout, $document, $window, $q, tags
                     ngModelCtrl.$setValidity('leftoverText', true);
                 })
                 .on('input-blur', function() {
-                    if (options.addOnBlur && !options.addFromAutocompleteOnly) {
+                    if (options.addOnBlur && !options.addFromAutocompleteOnly && !options.multiSelect) {
                         tagList.addText(scope.newTag.text());
                     }
                     element.triggerHandler('blur');

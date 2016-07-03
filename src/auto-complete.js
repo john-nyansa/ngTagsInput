@@ -1,6 +1,5 @@
 'use strict';
 
-
 /**
  * @ngdoc directive
  * @name autoComplete
@@ -143,11 +142,10 @@ tagsInput.directive('autoComplete', function($document, $timeout, $sce, $q, tags
         require: '^tagsInput',
         scope: {
             source: '&',
-            matchClass: '&',
-            multiSelect: '@'
+            matchClass: '&'
         },
         templateUrl: 'ngTagsInput/auto-complete.html',
-        controller: function($scope, $element, $attrs) {
+        controller: ["$scope", "$element", "$attrs", function($scope, $element, $attrs) {
             $scope.events = tiUtil.simplePubSub();
 
             tagsInputConfig.load('autoComplete', $scope, $attrs, {
@@ -165,8 +163,6 @@ tagsInput.directive('autoComplete', function($document, $timeout, $sce, $q, tags
 
             $scope.suggestionList = new SuggestionList($scope.source, $scope.options, $scope.events);
 
-            $scope.options.multiSelect = $scope.multiSelect;
-
             this.registerAutocompleteMatch = function() {
                 return {
                     getOptions: function() {
@@ -177,7 +173,7 @@ tagsInput.directive('autoComplete', function($document, $timeout, $sce, $q, tags
                     }
                 };
             };
-        },
+        }],
         link: function(scope, element, attrs, tagsInputCtrl) {
             var hotkeys = [KEYS.enter, KEYS.tab, KEYS.escape, KEYS.up, KEYS.down],
                 suggestionList = scope.suggestionList,
@@ -187,6 +183,8 @@ tagsInput.directive('autoComplete', function($document, $timeout, $sce, $q, tags
                 shouldLoadSuggestions;
 
             options.tagsInput = tagsInput.getOptions();
+
+            scope.multiSelect = options.multiSelect = options.tagsInput.multiSelect;
 
             shouldLoadSuggestions = function(value) {
                 return value && value.length >= options.minLength || !value && options.loadOnEmpty;
@@ -213,7 +211,7 @@ tagsInput.directive('autoComplete', function($document, $timeout, $sce, $q, tags
 
                     suggestionList.addedState[where] = !suggestionList.addedState[where];
 
-                    if (!options.multiSelect) { suggestionList.reset(); }
+                    if (!scope.multiSelect) { suggestionList.reset(); }
 
                     toggled = true;
                 }
@@ -249,7 +247,7 @@ tagsInput.directive('autoComplete', function($document, $timeout, $sce, $q, tags
 
             tagsInput
                 .on('tag-added tag-removed invalid-tag input-blur', function() {
-                    if (!options.multiSelect) { suggestionList.reset(); }
+                    if (!scope.multiSelect) { suggestionList.reset(); }
                 })
                 .on('input-blur', function() {
                     suggestionList.reset();
@@ -258,7 +256,7 @@ tagsInput.directive('autoComplete', function($document, $timeout, $sce, $q, tags
                     if (shouldLoadSuggestions(value)) {
                         suggestionList.load(value, tagsInput.getTags());
                     }
-                    else if (!options.multiSelect) {
+                    else {
                         suggestionList.reset();
                     }
                 })
