@@ -46,4 +46,30 @@ tags-input .autocomplete {
       background-color: $suggestion-highlight-bgcolor;
     }
   }
+
+  .tag-check-mark {
+    position: absolute;
+    right: 5px;
+    top: 0px;
+  }
+
+  .select-all-box, .suggestion-list li {
+    position: relative;
+  }
+
+  .select-all-box {
+    font: inherit;
+  }
+
+  .select-all-box button {
+    display: inline-block;
+    height: 30px;
+    background: white;
+    border: none;
+    cursor: pointer;
+  }
+
+  .select-all-box button:focus {
+    outline: 0;
+  }  
 }

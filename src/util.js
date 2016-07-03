@@ -34,6 +34,19 @@ tagsInput.factory('tiUtil', function($timeout, $q) {
         return newArray;
     };
 
+    self.findIndexOfObject = function(array, obj, key, comparer) {
+        var index = -1;
+        comparer = comparer || self.defaultComparer;
+        array.some(function(element, i) {
+            if (comparer(element[key], obj[key])) {
+                index = i;
+                return index;
+            }
+        });
+
+        return index;
+    };
+
     self.findInObjectArray = function(array, obj, key, comparer) {
         var item = null;
         comparer = comparer || self.defaultComparer;

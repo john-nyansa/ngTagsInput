@@ -56,7 +56,7 @@
  */
 tagsInput.directive('tagsInput', function($timeout, $document, $window, $q, tagsInputConfig, tiUtil) {
     function TagList(options, events, onTagAdding, onTagRemoving) {
-        var self = {}, getTagText, setTagText, canAddTag, canRemoveTag;
+        var self = {}, getTagText, setTagText, canAddTag, canRemoveTag, findTag;
 
         getTagText = function(tag) {
             return tiUtil.safeToString(tag[options.displayProperty]);
@@ -75,6 +75,15 @@ tagsInput.directive('tagsInput', function($timeout, $document, $window, $q, tags
                         !tiUtil.findInObjectArray(self.items, tag, options.keyProperty || options.displayProperty);
 
             return $q.when(valid && onTagAdding({ $tag: tag })).then(tiUtil.promisifyValue);
+        };
+
+        findTag = function(tag) {
+            var tagText = getTagText(tag);
+            if (tagText) {
+                return tiUtil.findIndexOfObject(self.items, tag, options.keyProperty || options.displayProperty);
+            }
+
+            return -1;
         };
 
         canRemoveTag = function(tag) {
@@ -119,6 +128,16 @@ tagsInput.directive('tagsInput', function($timeout, $document, $window, $q, tags
                 events.trigger('tag-removed', { $tag: tag });
                 return tag;
             });
+        };
+
+        self.findAndRemoveTag = function(tag) {
+            var where = findTag(tag);
+
+            if (where > -1) {
+                self.items.splice(where,1);
+                self.clearSelection();
+                events.trigger('tag-removed', { $tag: tag });                
+            }
         };
 
         self.select = function(index) {
@@ -216,6 +235,9 @@ tagsInput.directive('tagsInput', function($timeout, $document, $window, $q, tags
                 return {
                     addTag: function(tag) {
                         return $scope.tagList.add(tag);
+                    },
+                    findAndRemoveTag: function(tag) {
+                        return $scope.tagList.findAndRemoveTag(tag);
                     },
                     getTags: function() {
                         return $scope.tagList.items;
@@ -377,13 +399,14 @@ tagsInput.directive('tagsInput', function($timeout, $document, $window, $q, tags
                 .on('tag-added', function() {
                     scope.newTag.text('');
                 })
-                .on('tag-added tag-removed', function() {
+                .on('tag-added tag-removed', function(event) {
                     scope.tags = tagList.items;
                     // Ideally we should be able call $setViewValue here and let it in turn call $setDirty and $validate
                     // automatically, but since the model is an array, $setViewValue does nothing and it's up to us to do it.
                     // Unfortunately this won't trigger any registered $parser and there's no safe way to do it.
                     ngModelCtrl.$setDirty();
-                    focusInput();
+                    
+                    if (!options.multiSelect) { focusInput(); }
                 })
                 .on('invalid-tag', function() {
                     scope.newTag.invalid = true;

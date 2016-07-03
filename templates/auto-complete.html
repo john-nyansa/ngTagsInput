@@ -1,11 +1,18 @@
 <div class="autocomplete" ng-if="suggestionList.visible">
   <ul class="suggestion-list">
+    <li ng-if="multiSelect && suggestionList.items.length > 1">
+      <div class="select-all-box"> 
+        <button ng-click="toggleAllSuggestions(false)"> Unselect All &#10060; </button> 
+        <button ng-click="toggleAllSuggestions(true)"/> Select All &#x2705; </button> 
+      </div>
+    </li>
     <li class="suggestion-item"
         ng-repeat="item in suggestionList.items track by track(item)"
         ng-class="getSuggestionClass(item, $index)"
-        ng-click="addSuggestionByIndex($index)"
+        ng-click="toggleSuggestionByIndex($index)"
         ng-mouseenter="suggestionList.select($index)">
       <ti-autocomplete-match scope="templateScope" data="::item"></ti-autocomplete-match>
+      <span ng-if="suggestionList.addedState[$index]" class="tag-check-mark">&#x2705;</span>
     </li>
   </ul>
 </div>

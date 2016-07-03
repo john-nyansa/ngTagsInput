@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html ng-app="plunker">
+
+  <head>
+    <meta charset="utf-8" />
+    <title>AngularJS Plunker</title>
+    <script>document.write('<base href="' + document.location + '" />');</script>
+    <link rel="stylesheet" href="build/ng-tags-input.min.css" />
+    <script src="https://code.angularjs.org/1.4.2/angular.js"></script>
+    <script src="build/ng-tags-input.min.js"></script>
+    <script src="build/app.js"></script>
+  </head>
+
+  <body ng-controller="MainCtrl">
+    <tags-input ng-model="tags">
+      <auto-complete source="loadTags($query)" multi-select="true" min-length="0" load-on-focus="true"
+                     ></auto-complete>
+    </tags-input>
+  </body>
+
+</html>

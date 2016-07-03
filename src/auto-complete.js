@@ -1,5 +1,6 @@
 'use strict';
 
+
 /**
  * @ngdoc directive
  * @name autoComplete
@@ -60,6 +61,7 @@ tagsInput.directive('autoComplete', function($document, $timeout, $sce, $q, tags
             self.index = -1;
             self.selected = null;
             self.query = null;
+            self.addedState = null;
         };
         self.show = function() {
             if (options.selectFirstMatch) {
@@ -84,6 +86,7 @@ tagsInput.directive('autoComplete', function($document, $timeout, $sce, $q, tags
                 items = tiUtil.makeObjectArray(items.data || items, getTagId());
                 items = getDifference(items, tags);
                 self.items = items.slice(0, options.maxResultsToShow);
+                self.addedState = new Array(self.items.length);
 
                 if (self.items.length > 0) {
                     self.show();
@@ -100,6 +103,7 @@ tagsInput.directive('autoComplete', function($document, $timeout, $sce, $q, tags
         self.selectPrior = function() {
             self.select(--self.index);
         };
+
         self.select = function(index) {
             if (index < 0) {
                 index = self.items.length - 1;
@@ -109,7 +113,8 @@ tagsInput.directive('autoComplete', function($document, $timeout, $sce, $q, tags
             }
             self.index = index;
             self.selected = self.items[index];
-            events.trigger('suggestion-selected', index);
+
+            if (!options.multiSelect) { events.trigger('suggestion-selected', index); }
         };
 
         self.reset();
@@ -138,7 +143,8 @@ tagsInput.directive('autoComplete', function($document, $timeout, $sce, $q, tags
         require: '^tagsInput',
         scope: {
             source: '&',
-            matchClass: '&'
+            matchClass: '&',
+            multiSelect: '@'
         },
         templateUrl: 'ngTagsInput/auto-complete.html',
         controller: function($scope, $element, $attrs) {
@@ -158,6 +164,8 @@ tagsInput.directive('autoComplete', function($document, $timeout, $sce, $q, tags
             });
 
             $scope.suggestionList = new SuggestionList($scope.source, $scope.options, $scope.events);
+
+            $scope.options.multiSelect = $scope.multiSelect;
 
             this.registerAutocompleteMatch = function() {
                 return {
@@ -186,20 +194,45 @@ tagsInput.directive('autoComplete', function($document, $timeout, $sce, $q, tags
 
             scope.templateScope = tagsInput.getTemplateScope();
 
-            scope.addSuggestionByIndex = function(index) {
+            scope.toggleSuggestionByIndex = function(index) {
                 suggestionList.select(index);
-                scope.addSuggestion();
+                scope.toggleSuggestion();
             };
 
-            scope.addSuggestion = function() {
-                var added = false;
+            scope.toggleSuggestion = function() {
+                var toggled = false; 
+                var tag = angular.copy(suggestionList.selected);
+                var where = suggestionList.index;
 
                 if (suggestionList.selected) {
-                    tagsInput.addTag(angular.copy(suggestionList.selected));
-                    suggestionList.reset();
-                    added = true;
+                    if (!suggestionList.addedState[where]) {
+                        tagsInput.addTag(tag);
+                    } else {
+                        tagsInput.findAndRemoveTag(tag);
+                    }
+
+                    suggestionList.addedState[where] = !suggestionList.addedState[where];
+
+                    if (!options.multiSelect) { suggestionList.reset(); }
+
+                    toggled = true;
                 }
-                return added;
+
+                return toggled;
+            };
+
+            scope.toggleAllSuggestions = function(selectAll) {
+                angular.forEach(suggestionList.items, function(tag, i) {
+                    if (selectAll) {
+                        if (!suggestionList.addedState[i]) {
+                            scope.toggleSuggestionByIndex(i);
+                        }
+                    } else {
+                        if (suggestionList.addedState[i]) {
+                            scope.toggleSuggestionByIndex(i);
+                        }
+                    }
+                });
             };
 
             scope.track = function(item) {
@@ -216,13 +249,16 @@ tagsInput.directive('autoComplete', function($document, $timeout, $sce, $q, tags
 
             tagsInput
                 .on('tag-added tag-removed invalid-tag input-blur', function() {
+                    if (!options.multiSelect) { suggestionList.reset(); }
+                })
+                .on('input-blur', function() {
                     suggestionList.reset();
                 })
                 .on('input-change', function(value) {
                     if (shouldLoadSuggestions(value)) {
                         suggestionList.load(value, tagsInput.getTags());
                     }
-                    else {
+                    else if (!options.multiSelect) {
                         suggestionList.reset();
                     }
                 })
@@ -255,7 +291,7 @@ tagsInput.directive('autoComplete', function($document, $timeout, $sce, $q, tags
                             handled = true;
                         }
                         else if (key === KEYS.enter || key === KEYS.tab) {
-                            handled = scope.addSuggestion();
+                            handled = scope.toggleSuggestion();
                         }
                     }
                     else {
